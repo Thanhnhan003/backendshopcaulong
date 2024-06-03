@@ -12,7 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import java.text.NumberFormat;
 
 import jakarta.mail.MessagingException;
 
@@ -20,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 
 @RestController
 @RequestMapping("/orders")
@@ -38,7 +38,7 @@ public class OrderController {
     private EmailService emailService;
 
     @GetMapping("/payment")
-    public ResponseEntity<Map<String, String>> createPayment(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> createPayment(HttpServletRequest request, @RequestParam("addressUserId") UUID addressUserId) {
         String token = request.getHeader("Authorization").substring(7);
         List<CartItem> cartItems = cartService.getCartItems(token);
 
@@ -52,16 +52,15 @@ public class OrderController {
 
         UUID userId = cartItems.get(0).getUser().getUserId();
         String orderInfo = "Thanh toán đơn hàng";
-        String paymentUrl = vnPayService.createPaymentUrl(request, totalAmount, "", orderInfo, userId);
+        String paymentUrl = vnPayService.createPaymentUrl(request, totalAmount, "", orderInfo, userId, addressUserId);
 
         Map<String, String> response = new HashMap<>();
         response.put("paymentUrl", paymentUrl);
         return ResponseEntity.ok(response);
     }
 
-    // Endpoint để xử lý yêu cầu từ frontend React
     @GetMapping("/return")
-    public ResponseEntity<String> handlePaymentReturn(@RequestParam Map<String, String> params) {
+    public ResponseEntity<String> handlePaymentReturn(@RequestParam Map<String, String> params, @RequestParam("addressUserId") UUID addressUserId) {
         String userIdParam = params.get("userId");
         UUID userId = UUID.fromString(userIdParam);
         Users user = orderService.findUserById(userId);
@@ -74,10 +73,13 @@ public class OrderController {
         }
 
         if ("00".equals(vnp_ResponseCode)) {
+            DeliveryAddressUser deliveryAddressUser = orderService.findDeliveryAddressById(addressUserId);
             List<CartItem> cartItems = orderService.getCartItemsByUser(user);
+
             Order newOrder = new Order();
             newOrder.setUser(user);
             newOrder.setTxnRef(txnRef);
+            newOrder.setDeliveryAddressUser(deliveryAddressUser);
             orderService.saveOrder(newOrder);
 
             List<OrderDetail> orderDetails = new ArrayList<>();
@@ -88,10 +90,10 @@ public class OrderController {
                 detail.setQuantity(cartItem.getQuantity());
                 detail.setPrice(cartItem.getPrice());
                 orderDetails.add(detail);
-
             }
             orderService.saveOrderDetails(orderDetails);
             orderService.clearCartByUserId(user.getUserId());
+
             // Generate email content
             String emailBody = generateOrderConfirmationEmailBody(user, newOrder, orderDetails);
 
@@ -104,11 +106,8 @@ public class OrderController {
         }
     }
 
-    // OrderController.java
-    // OrderController.java
-
     @PostMapping("/cod")
-    public ResponseEntity<String> processCodPayment(HttpServletRequest request) {
+    public ResponseEntity<String> processCodPayment(HttpServletRequest request, @RequestParam("addressUserId") UUID addressUserId) {
         try {
             String token = request.getHeader("Authorization").substring(7);
             List<CartItem> cartItems = cartService.getCartItems(token);
@@ -120,9 +119,11 @@ public class OrderController {
             UUID userId = cartItems.get(0).getUser().getUserId();
             Users user = orderService.findUserById(userId);
 
+            DeliveryAddressUser deliveryAddressUser = orderService.findDeliveryAddressById(addressUserId);
             Order newOrder = new Order();
             newOrder.setUser(user);
             newOrder.setTxnRef(UUID.randomUUID().toString()); // Generate a random transaction reference
+            newOrder.setDeliveryAddressUser(deliveryAddressUser);
             orderService.saveOrder(newOrder);
 
             List<OrderDetail> orderDetails = new ArrayList<>();
@@ -156,7 +157,7 @@ public class OrderController {
     @Transactional
     @GetMapping("/confirm")
     public ResponseEntity<String> confirmOrder(@RequestParam("txnRef") String txnRef,
-            @RequestParam("userId") UUID userId) {
+            @RequestParam("userId") UUID userId, @RequestParam("addressUserId") UUID addressUserId) {
         Order order = orderService.findOrderByTxnRef(txnRef);
 
         if (order == null) {
@@ -166,10 +167,13 @@ public class OrderController {
                 return ResponseEntity.badRequest().body("User not found.");
             }
 
+            DeliveryAddressUser deliveryAddressUser = orderService.findDeliveryAddressById(addressUserId);
+
             // Create a new order
             order = new Order();
             order.setUser(user);
             order.setTxnRef(txnRef);
+            order.setDeliveryAddressUser(deliveryAddressUser);
             orderService.saveOrder(order);
 
             List<CartItem> cartItems = orderService.getCartItemsByUser(user);

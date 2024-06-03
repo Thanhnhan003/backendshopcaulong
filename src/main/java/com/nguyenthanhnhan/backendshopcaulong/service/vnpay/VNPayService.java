@@ -19,7 +19,8 @@ public class VNPayService {
     @Autowired
     private VNPayConfig config;
 
-    public String createPaymentUrl(HttpServletRequest req, long amount, String bankCode, String orderInfo, UUID userId) {
+    public String createPaymentUrl(HttpServletRequest req, long amount, String bankCode, String orderInfo, UUID userId,
+            UUID addressUserId) {
         String vnp_Version = "2.1.0";
         String vnp_Command = "pay";
         String orderType = "other";
@@ -46,9 +47,10 @@ public class VNPayService {
         } else {
             vnp_Params.put("vnp_Locale", "vn");
         }
-        vnp_Params.put("vnp_ReturnUrl", config.getReturnUrl() + 
-                       "?userId=" + userId + 
-                       "&vnp_TxnRef=" + vnp_TxnRef);
+        vnp_Params.put("vnp_ReturnUrl", config.getReturnUrl() +
+                "?userId=" + userId +
+                "&vnp_TxnRef=" + vnp_TxnRef +
+                "&addressUserId=" + addressUserId);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
@@ -96,7 +98,8 @@ public class VNPayService {
             StringBuilder sb = new StringBuilder(2 * result.length);
             for (byte b : result) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) sb.append('0');
+                if (hex.length() == 1)
+                    sb.append('0');
                 sb.append(hex);
             }
             return sb.toString();

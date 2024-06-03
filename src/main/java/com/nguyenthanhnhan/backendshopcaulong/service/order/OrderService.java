@@ -4,8 +4,10 @@ package com.nguyenthanhnhan.backendshopcaulong.service.order;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Order;
 import com.nguyenthanhnhan.backendshopcaulong.entity.OrderDetail;
 import com.nguyenthanhnhan.backendshopcaulong.entity.CartItem;
+import com.nguyenthanhnhan.backendshopcaulong.entity.DeliveryAddressUser;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Users;
 import com.nguyenthanhnhan.backendshopcaulong.repository.CartItemRepository;
+import com.nguyenthanhnhan.backendshopcaulong.repository.DeliveryAddressUserRepository;
 import com.nguyenthanhnhan.backendshopcaulong.repository.OrderDetailRepository;
 import com.nguyenthanhnhan.backendshopcaulong.repository.OrderRepository;
 import com.nguyenthanhnhan.backendshopcaulong.repository.UserInfoRepository;
@@ -73,7 +75,7 @@ public class OrderService {
 
     }
 
-    ///của order COD 
+    /// của order COD
 
     public Order findOrderByTxnRef(String txnRef) {
         return orderRepository.findByTxnRef(txnRef);
@@ -82,7 +84,12 @@ public class OrderService {
     public List<OrderDetail> findOrderDetailsByOrder(Order order) {
         return orderDetailRepository.findByOrder(order);
     }
-
-
+    @Autowired
+    private DeliveryAddressUserRepository deliveryAddressUserRepository;
+    // địa chỉ nhận hàng của người dùng
+    public DeliveryAddressUser findDeliveryAddressById(UUID addressUserId) {
+        return deliveryAddressUserRepository.findById(addressUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy địa chỉ người nhận"));
+    }
 
 }
