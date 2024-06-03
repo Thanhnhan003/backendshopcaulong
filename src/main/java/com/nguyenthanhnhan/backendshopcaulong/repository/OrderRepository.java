@@ -11,4 +11,6 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
 
     boolean existsByTxnRef(String txnRef);
 
+    Order findByTxnRef(String txnRef);
+
 }

@@ -25,8 +25,15 @@ public class Order {
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderDetail> orderDetails;
+    
     @Column(name = "txnRef")
     private String txnRef;
+
     @Column(name = "orderTime", nullable = false, updatable = false)
     private LocalDateTime orderTime = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "addressUserId", referencedColumnName = "addressUserId")
+    private DeliveryAddressUser deliveryAddressUser;
+
 }

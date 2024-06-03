@@ -72,4 +72,17 @@ public class OrderService {
         return orderRepository.existsByTxnRef(txnRef);
 
     }
+
+    ///của order COD 
+
+    public Order findOrderByTxnRef(String txnRef) {
+        return orderRepository.findByTxnRef(txnRef);
+    }
+
+    public List<OrderDetail> findOrderDetailsByOrder(Order order) {
+        return orderDetailRepository.findByOrder(order);
+    }
+
+
+
 }
