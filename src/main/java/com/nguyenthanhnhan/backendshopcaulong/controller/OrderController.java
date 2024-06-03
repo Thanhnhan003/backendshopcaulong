@@ -79,6 +79,8 @@ public class OrderController {
             Order newOrder = new Order();
             newOrder.setUser(user);
             newOrder.setTxnRef(txnRef);
+            newOrder.setStatus("1");
+            newOrder.setNamePayment("VNPay");
             newOrder.setDeliveryAddressUser(deliveryAddressUser);
             orderService.saveOrder(newOrder);
 
@@ -122,6 +124,8 @@ public class OrderController {
             DeliveryAddressUser deliveryAddressUser = orderService.findDeliveryAddressById(addressUserId);
             Order newOrder = new Order();
             newOrder.setUser(user);
+            newOrder.setStatus("1");
+            newOrder.setNamePayment("COD");
             newOrder.setTxnRef(UUID.randomUUID().toString()); // Generate a random transaction reference
             newOrder.setDeliveryAddressUser(deliveryAddressUser);
             orderService.saveOrder(newOrder);

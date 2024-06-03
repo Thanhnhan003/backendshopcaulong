@@ -28,8 +28,13 @@ public class Order {
 
     @Column(name = "txnRef")
     private String txnRef;
+
     @Column(name = "namePayment")
     private String namePayment;
+    
+    @Column(name = "status")
+    private String status;
+
     @Column(name = "orderTime", nullable = false, updatable = false)
     private LocalDateTime orderTime = LocalDateTime.now();
 
