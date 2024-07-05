@@ -53,11 +53,14 @@ public class BrandController {
 
     @PostMapping
     public ResponseEntity<?> createBrand(@RequestParam("brandName") String brandName,
+            @RequestParam("brandDescription") String brandDescription,
+
             @RequestParam("imageFile") MultipartFile imageFile) {
         try {
             String imageName = brandService.saveImage(imageFile);
             Brand brand = new Brand();
             brand.setBrandName(brandName);
+            brand.setBrandDescription(brandDescription);
             brand.setThumbnail(imageName);
             return ResponseEntity.ok(brandService.saveBrand(brand));
         } catch (IOException e) {
@@ -70,12 +73,14 @@ public class BrandController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateBrand(@PathVariable UUID id,
             @RequestParam("brandName") String brandName,
+            @RequestParam("brandDescription") String brandDescription,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
         Optional<Brand> brandOptional = brandService.getBrandById(id);
         if (brandOptional.isPresent()) {
             try {
                 Brand brand = brandOptional.get();
                 brand.setBrandName(brandName);
+                brand.setBrandDescription(brandDescription);
                 if (imageFile != null && !imageFile.isEmpty()) {
                     String oldImage = brand.getThumbnail();
                     String imageName = brandService.saveImage(imageFile);

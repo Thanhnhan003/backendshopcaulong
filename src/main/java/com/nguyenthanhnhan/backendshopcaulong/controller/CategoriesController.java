@@ -53,11 +53,13 @@ public class CategoriesController {
 
     @PostMapping
     public ResponseEntity<?> createCategory(@RequestParam("categoryName") String categoryName,
+            @RequestParam("categoryDescription") String categoryDescription,
             @RequestParam("imageFile") MultipartFile imageFile) {
         try {
             String imageName = categoriesService.saveImage(imageFile);
             Categories category = new Categories();
             category.setCategoryName(categoryName);
+            category.setCategoryDescription(categoryDescription);
             category.setThumbnail(imageName);
             return ResponseEntity.ok(categoriesService.saveCategory(category));
         } catch (IOException e) {
@@ -70,12 +72,14 @@ public class CategoriesController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCategory(@PathVariable UUID id,
             @RequestParam("categoryName") String categoryName,
+            @RequestParam("categoryDescription") String categoryDescription,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile) {
         Optional<Categories> categoryOptional = categoriesService.getCategoryById(id);
         if (categoryOptional.isPresent()) {
             try {
                 Categories category = categoryOptional.get();
                 category.setCategoryName(categoryName);
+                category.setCategoryDescription(categoryDescription);
                 if (imageFile != null && !imageFile.isEmpty()) {
                     String oldImage = category.getThumbnail();
                     String imageName = categoriesService.saveImage(imageFile);
@@ -127,4 +131,5 @@ public class CategoriesController {
 
         return new ResponseEntity<>(imageBytes, headers, HttpStatus.OK);
     }
+    
 }

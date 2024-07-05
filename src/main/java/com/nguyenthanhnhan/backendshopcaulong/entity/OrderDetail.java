@@ -2,6 +2,8 @@ package com.nguyenthanhnhan.backendshopcaulong.entity;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,6 +20,7 @@ public class OrderDetail {
     private UUID orderDetailId;
 
     @ManyToOne(fetch = FetchType.EAGER)
+    @JsonIgnore
     @JoinColumn(name = "orderId", referencedColumnName = "orderId")
     private Order order;
 

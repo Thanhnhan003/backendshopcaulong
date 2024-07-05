@@ -18,6 +18,9 @@ public class Categories {
 
     @Column(name = "categoryName")
     private String categoryName;
+
+    @Column(name = "categoryDescription")
+    private String categoryDescription;
     
     @Column(name = "slug")
     private String slug;

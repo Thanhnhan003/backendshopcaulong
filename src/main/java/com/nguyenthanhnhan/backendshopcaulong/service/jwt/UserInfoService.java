@@ -9,7 +9,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserInfoService implements UserDetailsService {
@@ -23,6 +25,7 @@ public class UserInfoService implements UserDetailsService {
     @Autowired
     private JwtService jwtService;
 
+    // kích hoạt tài khoản bằng email
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Optional<Users> userDetail = repository.findByEmail(email);
@@ -40,7 +43,7 @@ public class UserInfoService implements UserDetailsService {
     public Optional<Users> findByActivationCode(String activationCode) {
         return repository.findByActivationCode(activationCode);
     }
-    
+
     public String addUser(Users userInfo) {
         if (repository.findByEmail(userInfo.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email đã được sử dụng!");
@@ -52,7 +55,7 @@ public class UserInfoService implements UserDetailsService {
         repository.save(userInfo);
         return "Đăng ký người dùng thành công!";
     }
-    
+
     public Optional<Users> findByEmail(String email) {
         return repository.findByEmail(email);
     }
@@ -63,7 +66,28 @@ public class UserInfoService implements UserDetailsService {
         return user.filter(u -> u.getRoles().contains("USER") || u.getRoles().contains("ADMIN"));
     }
 
-    //reset
+    public Users findUserById(UUID userId) {
+        return repository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+    }
+
+    // thay đổi mật khẩu
+    public String changePassword(String token, String oldPassword, String newPassword) {
+        String email = jwtService.extractUsername(token);
+        Users user = repository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
+
+        if (!encoder.matches(oldPassword, user.getPassword())) {
+            throw new IllegalArgumentException("mật khẩu cũ không đúng");
+        }
+
+        user.setPassword(encoder.encode(newPassword));
+        repository.save(user);
+
+        return "Đã thay đổi mật khẩu thành công";
+    }
+
+    // reset mật khẩu
     public String generateRandomPassword(int length) {
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         StringBuilder password = new StringBuilder();
@@ -80,5 +104,42 @@ public class UserInfoService implements UserDetailsService {
 
     public String encodePassword(String password) {
         return encoder.encode(password);
+    }
+
+    /// =======get all người dùng chỉ admin mới sài được
+    // Trong class UserInfoService
+    public List<Users> getAllUsers() {
+        return repository.findAll();
+    }
+
+    public boolean isAdmin(String token) {
+        String email = jwtService.extractUsername(token);
+        Optional<Users> user = repository.findByEmail(email);
+        return user.isPresent() && user.get().getRoles().contains("ADMIN");
+    }
+
+    /// =======cập nhập trạng thái người dùng
+    public void updateEnabledStatus(UUID userId, boolean enabled) {
+        Users user = repository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+        user.setEnabled(enabled);
+        repository.save(user);
+    }
+    //Tỉnh tổng số lượng tài khoản ADMIN và USER
+    public long countUsersByRole(String role) {
+        List<Users> users = repository.findByRoles(role);
+        return users.size();
+    }
+
+    public long countUsersWithRolesAdminAndUser() {
+        long adminCount = countUsersByRole("ADMIN");
+        long userCount = countUsersByRole("USER");
+        return adminCount + userCount;
+    }
+    //get thông tin người dùng dựa vào token
+    public Users getUserDetailsByToken(String token) {
+        String email = jwtService.extractUsername(token);
+        return repository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng"));
     }
 }

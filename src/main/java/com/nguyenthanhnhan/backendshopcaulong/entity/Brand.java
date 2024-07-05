@@ -19,6 +19,9 @@ public class Brand {
     @Column(name = "brandName")
     private String brandName;
 
+    @Column(name = "brandDescription")
+    private String brandDescription;
+
     @Column(name = "slug")
     private String slug;
 

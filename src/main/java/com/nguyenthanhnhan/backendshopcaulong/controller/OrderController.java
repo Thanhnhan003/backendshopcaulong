@@ -1,6 +1,7 @@
 // OrderController.java
 package com.nguyenthanhnhan.backendshopcaulong.controller;
 
+import com.nguyenthanhnhan.backendshopcaulong.dto.OrderStatisticsDTO;
 import com.nguyenthanhnhan.backendshopcaulong.entity.*;
 import com.nguyenthanhnhan.backendshopcaulong.service.cartitem.CartService;
 import com.nguyenthanhnhan.backendshopcaulong.service.email.EmailService;
@@ -37,8 +38,58 @@ public class OrderController {
     @Autowired
     private EmailService emailService;
 
+    @GetMapping()
+    public List<Order> getAllOrder() {
+        return orderService.getAllOrder();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Order> getOrderById(@PathVariable UUID id) {
+        Optional<Order> order = orderService.getOrderById(id);
+        if (order.isPresent()) {
+            return ResponseEntity.ok(order.get());
+        } else {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getOrderbyToken(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+        if (token == null) {
+            return ResponseEntity.badRequest().body("Token is missing or invalid");
+        }
+
+        try {
+            List<Order> order = orderService.getOrderByToken(token);
+            return ResponseEntity.ok(order);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/items")
+    public ResponseEntity<?> getCartItems(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        String token = authHeader != null && authHeader.startsWith("Bearer ") ? authHeader.substring(7) : null;
+
+        if (token == null) {
+            return ResponseEntity.badRequest().body("Token is missing or invalid");
+        }
+
+        try {
+            List<CartItem> cartItems = cartService.getCartItems(token);
+            return ResponseEntity.ok(cartItems);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/payment")
-    public ResponseEntity<Map<String, String>> createPayment(HttpServletRequest request, @RequestParam("addressUserId") UUID addressUserId) {
+    public ResponseEntity<Map<String, String>> createPayment(HttpServletRequest request,
+            @RequestParam("addressUserId") UUID addressUserId) {
         String token = request.getHeader("Authorization").substring(7);
         List<CartItem> cartItems = cartService.getCartItems(token);
 
@@ -60,7 +111,8 @@ public class OrderController {
     }
 
     @GetMapping("/return")
-    public ResponseEntity<String> handlePaymentReturn(@RequestParam Map<String, String> params, @RequestParam("addressUserId") UUID addressUserId) {
+    public ResponseEntity<String> handlePaymentReturn(@RequestParam Map<String, String> params,
+            @RequestParam("addressUserId") UUID addressUserId) {
         String userIdParam = params.get("userId");
         UUID userId = UUID.fromString(userIdParam);
         Users user = orderService.findUserById(userId);
@@ -92,6 +144,10 @@ public class OrderController {
                 detail.setQuantity(cartItem.getQuantity());
                 detail.setPrice(cartItem.getPrice());
                 orderDetails.add(detail);
+                // cập nhập lại số lượng trong kho
+                // Product product = cartItem.getProduct();
+                // product.setQuantity(product.getQuantity() - cartItem.getQuantity());
+                // productService.saveProduct(product);
             }
             orderService.saveOrderDetails(orderDetails);
             orderService.clearCartByUserId(user.getUserId());
@@ -109,7 +165,8 @@ public class OrderController {
     }
 
     @PostMapping("/cod")
-    public ResponseEntity<String> processCodPayment(HttpServletRequest request, @RequestParam("addressUserId") UUID addressUserId) {
+    public ResponseEntity<String> processCodPayment(HttpServletRequest request,
+            @RequestParam("addressUserId") UUID addressUserId) {
         try {
             String token = request.getHeader("Authorization").substring(7);
             List<CartItem> cartItems = cartService.getCartItems(token);
@@ -138,7 +195,9 @@ public class OrderController {
                 detail.setQuantity(cartItem.getQuantity());
                 detail.setPrice(cartItem.getPrice());
                 orderDetails.add(detail);
+
             }
+
             orderService.saveOrderDetails(orderDetails);
             orderService.clearCartByUserId(user.getUserId());
 
@@ -251,5 +310,46 @@ public class OrderController {
                 .append("</html>");
 
         return body.toString();
+    }
+
+    // xử lý đơn hàng
+    @Transactional
+    @PutMapping("/update-status")
+    public ResponseEntity<String> updateOrderStatus(@RequestParam("orderId") UUID orderId,
+            @RequestParam("status") String status) {
+        Order order = orderService.findOrderById(orderId);
+        if (order == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("không tìm thấy đơn hàng");
+        }
+
+        // Cập nhật trạng thái đơn hàng
+        order.setStatus(status);
+        orderService.saveOrder(order);
+
+        // Nếu trạng thái là "2", cập nhật số lượng sản phẩm
+        String responseMessage = "Trạng thái đơn hàng đã được cập nhật.";
+        if ("2".equals(status)) {
+            orderService.updateProductQuantities(order);
+            responseMessage = "Đơn hàng đã được chuyển đi.";
+        } else if ("3".equals(status)) {
+            responseMessage = "Đơn hàng đã được giao.";
+        }
+        return ResponseEntity.ok(responseMessage);
+    }
+
+    // tính tổng danh thu và tổng số lượng đơn hàng chưa xử lý nhờ vào status
+    @GetMapping("/statistics")
+    public OrderStatisticsDTO getOrderStatistics() {
+        double revenue = orderService.calculateTotalRevenue("3");
+        long orderCount = orderService.countOrdersWithStatusEqualTo("1");
+
+        String revenueString;
+        if (revenue == (long) revenue) {
+            revenueString = String.format("%d", (long) revenue);
+        } else {
+            revenueString = String.format("%s", revenue);
+        }
+
+        return new OrderStatisticsDTO(revenueString, orderCount);
     }
 }

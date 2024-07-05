@@ -15,7 +15,6 @@ import jakarta.persistence.*;
 @NoArgsConstructor
 @Table(name = "users")
 public class Users {
-
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "userId")
@@ -32,5 +31,4 @@ public class Users {
     private String roles;
     @Column(name = "avatar")
     private String avatar;
- 
 }

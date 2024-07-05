@@ -3,6 +3,7 @@ package com.nguyenthanhnhan.backendshopcaulong.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -14,6 +15,7 @@ import com.nguyenthanhnhan.backendshopcaulong.entity.Brand;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Categories;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Gallery;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Product;
+import com.nguyenthanhnhan.backendshopcaulong.repository.ProductRepository;
 import com.nguyenthanhnhan.backendshopcaulong.service.brand.BrandService;
 import com.nguyenthanhnhan.backendshopcaulong.service.category.CategoriesService;
 import com.nguyenthanhnhan.backendshopcaulong.service.gallery.GalleryService;
@@ -24,8 +26,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
@@ -246,4 +252,77 @@ public class ProductController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @GetMapping
+    public List<Product> getAllProducts(@RequestParam(required = false) String category,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String minPrice,
+            @RequestParam(required = false) String maxPrice) {
+        Specification<Product> spec = Specification.where(null);
+
+        if (category != null && !category.isEmpty()) {
+            List<String> categorySlugs = Arrays.stream(category.split(",")).collect(Collectors.toList());
+            spec = spec.and(productService.hasCategorySlugs(categorySlugs));
+        }
+
+        if (brand != null && !brand.isEmpty()) {
+            List<String> brandSlugs = Arrays.stream(brand.split(",")).collect(Collectors.toList());
+            spec = spec.and(productService.hasBrandSlugs(brandSlugs));
+        }
+
+        if (minPrice != null && maxPrice != null) {
+            spec = spec.and(productService.hasPriceBetween(minPrice, maxPrice));
+        }
+
+        return productRepository.findAll(spec);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Product>> searchProductsByName(@RequestParam("name") String name) {
+        List<Product> products = productService.searchProductsByName(name);
+        if (!products.isEmpty()) {
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    /// =======================================================================================
+    @GetMapping("/categories-brands")
+    public List<ProductService.CategoryWithBrands> getCategoriesWithBrandsDetails() {
+        return productService.getCategoriesWithBrandsDetails();
+    }
+
+    /// Chức năng hiển thị sản phẩm tương tự dựa vào chi tiết sản phẩm
+    /// ====================================
+    @GetMapping("/similar/{slug}")
+    public ResponseEntity<List<Product>> getSimilarProducts(@PathVariable String slug) {
+        List<Product> similarProducts = productService.getSimilarProductsExcludingCurrent(slug);
+        if (similarProducts != null) {
+            return new ResponseEntity<>(similarProducts, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    // Hiển thị các sản phẩm sắp hết số lượng cần nhập hàng
+    @GetMapping("/low-quantity")
+    public ResponseEntity<List<Product>> getProductsWithLowQuantity() {
+        List<Product> lowQuantityProducts = productService.getProductsWithLowQuantity();
+        return ResponseEntity.ok(lowQuantityProducts);
+    }
+
+    // list sản phẩm dựa vào slug category
+    @GetMapping("/category/{categorySlug}")
+    public List<Product> getProductsByCategoryAndBrandSlug(
+            @PathVariable String categorySlug,
+            @RequestParam(required = false) String brandSlug,
+            @RequestParam String minPrice,
+            @RequestParam String maxPrice) {
+        return productService.getProductsByCategoryAndBrandSlug(categorySlug, brandSlug, minPrice, maxPrice);
+    }
+
 }

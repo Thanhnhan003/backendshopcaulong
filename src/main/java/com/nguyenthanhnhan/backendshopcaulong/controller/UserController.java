@@ -2,10 +2,13 @@ package com.nguyenthanhnhan.backendshopcaulong.controller;
 
 import com.nguyenthanhnhan.backendshopcaulong.dto.AuthRequest;
 import com.nguyenthanhnhan.backendshopcaulong.dto.UserResponse;
+import com.nguyenthanhnhan.backendshopcaulong.dto.UserStatisticsDTO;
 import com.nguyenthanhnhan.backendshopcaulong.entity.Users;
 import com.nguyenthanhnhan.backendshopcaulong.service.email.EmailService;
 import com.nguyenthanhnhan.backendshopcaulong.service.jwt.JwtService;
 import com.nguyenthanhnhan.backendshopcaulong.service.jwt.UserInfoService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -28,6 +31,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -264,11 +268,30 @@ public class UserController {
                         userInfo.getEmail(),
                         userInfo.getRoles(),
                         userInfo.getAvatar(),
+                        userInfo.isEnabled(),
                         userInfo.getCreatedAt());
                 return ResponseEntity.ok(response);
             }
         }
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> changePassword(@RequestHeader("Authorization") String token,
+            @RequestParam String oldPassword,
+            @RequestParam String newPassword) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            return ResponseEntity.badRequest().body("Invalid token format");
+        }
+
+        try {
+            String response = service.changePassword(token, oldPassword, newPassword);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/forgot_password")
@@ -292,5 +315,50 @@ public class UserController {
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Email not found.");
         }
+    }
+
+    // get all người dùng
+    @GetMapping("/all")
+    public ResponseEntity<?> getAllUsers(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7); // Remove "Bearer " prefix
+        if (service.isAdmin(token)) {
+            List<Users> users = service.getAllUsers();
+            return ResponseEntity.ok(users);
+        } else {
+            return ResponseEntity.status(403).body("Bạn không có quyền truy cập tài nguyên này");
+        }
+    }
+
+    // chức năng cập nhập trạng thái người dùng
+    @PutMapping("/enabled/{userId}")
+    public ResponseEntity<?> updateEnabledStatus(@PathVariable UUID userId, @RequestParam boolean enabled) {
+        try {
+            service.updateEnabledStatus(userId, enabled);
+            return ResponseEntity.ok("Cập nhật trạng thái enabled thành công");
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(404).body(e.getMessage());
+        }
+    }
+
+    // chức năng tỉnh tổng số lượng tài khoản ADMIN và USER
+    @GetMapping("/user-statistics")
+    public UserStatisticsDTO getUserStatistics() {
+        long adminCount = service.countUsersByRole("ADMIN");
+        long userCount = service.countUsersByRole("USER");
+
+        return new UserStatisticsDTO(adminCount, userCount);
+    }
+
+    // get thông tin người dùng dựa vào token
+    @GetMapping("/info")
+    public ResponseEntity<Users> getUserInfobyToken(@RequestHeader("Authorization") String token) {
+        if (token != null && token.startsWith("Bearer ")) {
+            token = token.substring(7);
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+        Users user = service.getUserDetailsByToken(token);
+        return ResponseEntity.ok(user);
     }
 }

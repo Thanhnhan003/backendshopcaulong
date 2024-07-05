@@ -1,7 +1,10 @@
 package com.nguyenthanhnhan.backendshopcaulong.service.category;
 
 import com.nguyenthanhnhan.backendshopcaulong.entity.Categories;
+import com.nguyenthanhnhan.backendshopcaulong.entity.Product;
 import com.nguyenthanhnhan.backendshopcaulong.repository.CategoriesRepository;
+import com.nguyenthanhnhan.backendshopcaulong.repository.ProductRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,9 +22,11 @@ import java.util.regex.Pattern;
 @Service
 public class CategoriesService {
     private static final String UPLOAD_DIR = "src/main/resources/static/dataImage/categorys/";
- 
+
     @Autowired
     private CategoriesRepository categoriesRepository;
+
+
 
     public List<Categories> getAllCategories() {
         return categoriesRepository.findAll();

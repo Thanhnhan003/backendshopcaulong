@@ -47,5 +47,5 @@ public class Product {
     private Brand brand;
 
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Gallery> galleries;
+    private List<Gallery> galleries;   
 }

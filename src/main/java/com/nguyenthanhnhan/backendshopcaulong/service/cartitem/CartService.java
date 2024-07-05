@@ -29,6 +29,9 @@ public class CartService {
 
     @Autowired
     private JwtService jwtService;
+    public Optional<Product> getProductById(UUID productId) {
+        return productRepository.findById(productId);
+    }
 
     public List<CartItem> getCartItems(String token) {
         String email = jwtService.extractUsername(token);
@@ -95,5 +98,16 @@ public class CartService {
         Users user = userInfoRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User không tìm thấy"));
         cartItemRepository.deleteByUser(user);
+    }
+
+    public void removeProductFromCart(String token, UUID productId) {
+        UUID userId = jwtService.extractUserId(token);
+        Optional<CartItem> cartItemOptional = cartItemRepository.findByUserUserIdAndProductProductId(userId, productId);
+
+        if (cartItemOptional.isPresent()) {
+            cartItemRepository.delete(cartItemOptional.get());
+        } else {
+            throw new IllegalArgumentException("Product not found in cart");
+        }
     }
 }

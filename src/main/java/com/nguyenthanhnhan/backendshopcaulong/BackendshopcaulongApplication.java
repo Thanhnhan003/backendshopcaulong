@@ -8,7 +8,7 @@ public class BackendshopcaulongApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(BackendshopcaulongApplication.class, args);
-	}
+	}	
 
 }
 
