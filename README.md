@@ -10,4 +10,4 @@
 - Giao diện người dùng: https://github.com/Thanhnhan003/FrontendShopCauLong
 - Giao diện admin: https://github.com/Thanhnhan003/FrontendAdminShopCauLong
 ## Word mô tả Đề Cương 
-[Uploading Đề Cương Thực Tập Tốt Nghiệp_NguyenThanhNhan.docx…]()
+https://github.com/Thanhnhan003/backendshopcaulong/blob/main/%C4%90%E1%BB%81%20C%C6%B0%C6%A1ng%20Th%E1%BB%B1c%20T%E1%BA%ADp%20T%E1%BB%91t%20Nghi%E1%BB%87p_NguyenThanhNhan.docx
